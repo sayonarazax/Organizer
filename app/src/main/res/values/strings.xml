@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Органайзер</string>
+    <string name="action_settings">Настройки</string>
+    <string name="org_title_hint">Введите заголовок задачи</string>
+    <string name="org_details_hint">Введите описание задачи</string>
+    <string name="org_title_label">Описание</string>
+    <string name="org_details_label">Детали</string>
+    <string name="org_solved_label">Выполнено</string>
+    <string name="date_picker_title">Дата задачи:</string>
+    <string name="time_picker_title">Время задачи:</string>
+    <string name="new_org">Новая задача</string>
+    <string name="delete_org">Удалить задачу</string>
+    <string name="toast_delete_org">Задача удалена!</string>
+</resources>
