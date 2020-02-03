@@ -7,6 +7,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -14,12 +15,14 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.text.format.DateFormat;
+import android.widget.Toast;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 public class OrgListFragment extends Fragment {
     private RecyclerView mOrgRecyclerView;
@@ -32,15 +35,13 @@ public class OrgListFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.main_org, container,
-                false);
-        mOrgRecyclerView = (RecyclerView) view
-                .findViewById(R.id.org_recycler_view);
-        mOrgRecyclerView.setLayoutManager(new LinearLayoutManager
-                (getActivity()));
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.main_org, container, false);
+        mOrgRecyclerView = view.findViewById(R.id.org_recycler_view);
+        mOrgRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+
         updateUI();
+
 
 
         return view;
@@ -56,7 +57,8 @@ public class OrgListFragment extends Fragment {
                 OrgLab.get(getActivity()).addOrg(org);
                 Intent intent = OrgPagerActivity
                         .newIntent(getActivity(), org.getId());
-                startActivity(intent);            }
+                startActivity(intent);
+            }
         });
     }
 
@@ -92,12 +94,17 @@ public class OrgListFragment extends Fragment {
             }
         });
         if (mAdapter == null) {
-        mAdapter = new OrgAdapter(orgs);
-        mOrgRecyclerView.setAdapter(mAdapter);
+            mAdapter = new OrgAdapter(orgs);
+            mOrgRecyclerView.setAdapter(mAdapter);
+            ItemTouchHelper.Callback callback =
+                    new SimpleItemTouchHelperCallback(mAdapter);
+            ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
+            touchHelper.attachToRecyclerView(mOrgRecyclerView);
         } else {
             mAdapter.setOrgs(orgs);
             mAdapter.notifyDataSetChanged();
         }
+
     }
 
     private class OrgHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
@@ -114,6 +121,7 @@ public class OrgListFragment extends Fragment {
             mDateTextView = (TextView) itemView.findViewById(R.id.org_date);
             mSolvedImageView = (ImageView) itemView.findViewById(R.id.org_solved);
         }
+
         public void bind(Org org) {
             mOrg = org;
             mTitleTextView.setText(mOrg.getTitle());
@@ -130,8 +138,9 @@ public class OrgListFragment extends Fragment {
         }
     }
 
-    private class OrgAdapter extends RecyclerView.Adapter<OrgHolder> {
+    private class OrgAdapter extends RecyclerView.Adapter<OrgHolder> implements ItemTouchHelperAdapter {
         private List<Org> mOrgs;
+
         public OrgAdapter(List<Org> orgs) {
             mOrgs = orgs;
         }
@@ -157,5 +166,54 @@ public class OrgListFragment extends Fragment {
         public void setOrgs(List<Org> orgs) {
             mOrgs = orgs;
         }
+
+        @Override
+        public void onItemDismiss(int position) {
+            UUID crimeId = mOrgs.get(position).getId();
+            mOrgs.remove(position);
+            notifyItemRemoved(position);
+
+            OrgLab.get(getActivity()).deleteOrg(crimeId);
+
+            Toast.makeText(getActivity(), R.string.toast_delete_org, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public class SimpleItemTouchHelperCallback extends ItemTouchHelper.Callback {
+
+            private final ItemTouchHelperAdapter mAdapter;
+
+            public SimpleItemTouchHelperCallback(ItemTouchHelperAdapter adapter) {
+                mAdapter = adapter;
+            }
+
+            @Override
+            public boolean isLongPressDragEnabled() {
+                return false;
+            }
+
+            @Override
+            public boolean isItemViewSwipeEnabled() {
+                return true;
+            }
+
+            @Override
+            public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+                int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+                int swipeFlags = ItemTouchHelper.START | ItemTouchHelper.END;
+                return makeMovementFlags(dragFlags, swipeFlags);
+            }
+
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
+                                  RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                mAdapter.onItemDismiss(viewHolder.getAdapterPosition());
+            }
+
     }
 }
